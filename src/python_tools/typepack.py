@@ -145,44 +145,115 @@ class MyHashMap_Dict:
         del self._hashmap[key]
 
 
+# Below is a test case script for verifying these classes.
+# Move the script into a separate file and run it from there.
+
+_ = '''
+
+
+import sys
+import traceback
+
+null, false, true = None, False, True
+
+def test_common(inputs, checks, klass):
+    print(f"test_common >>> {klass=}")
+    obj = klass()
+    for count, (name, ar, exp) in enumerate(zip(*inputs)):
+        if name == klass.__name__.split("_")[0]:
+            obj = klass(*ar)
+            func = lambda *x, **y: (None, None)
+        else:
+            func = getattr(obj, name)
+        check = [k for k, v in checks.items() if name in v][0]
+        msg = f"when {name=}, {ar=}"
+        try:
+            res = func(*ar)
+        except Exception as exc:
+            msg += f" -> {exc=}"
+            print(msg)
+            traceback.print_exc()
+            continue
+        else:
+            msg += f" -> {check=}: {res=}, {exp=}"
+        match check:
+            case "ignore":
+                pass
+            case "eq":
+                assert res == exp, msg
+            case "eq_when_sorted_two_deep":
+                assert sorted([sorted(v) for v in res]) == sorted([sorted(v) for v in exp]), msg
+            case "in_list":
+                assert res in exp, msg
+            case _:
+                raise ValueError(f"unknown check: {check=}")
+        print(f"test_common : {msg=}")
+    print(f"test_common <<<")
+
+inputs = [
+    ["MyHashMap","put","put","get","get","put","get","remove","get"],
+    [[],[1,1],[2,2],[1],[3],[2,1],[2],[2],[2]],
+    [null,null,null,1,-1,null,1,null,-1],
+]
+checks = {
+    "ignore": [
+        "MyHashMap",
+        "put",
+        "remove"
+    ],
+    "eq": [
+        "get"
+    ],
+    "eq_when_sorted_two_deep": [
+
+    ],
+    "in_list": [
+
+    ],
+}
+for klass in [
+    MyHashMap_MutableMapping,
+    MyHashMap_Dict,
+]:
+    _ = test_common(inputs, checks, klass); print()
+
+'''
+
 # Below is a perf mapping script to characterize these classes.
 # Move the script into a separate file and run it from there.
 
 _ = '''
 import random
-import sys
 import timeit
 
-if __name__ == "__main__":
-    if "google.colab" in sys.modules:
-        def perf_mapping(klass, repeat=100):
-            print(f"perf_mapping >>> {klass=}, {repeat=}")
-            timer = timeit.Timer(
-                stmt='_ = [m.put(random.randint(0, 10 ** 6), random.randint(0, 10 ** 6)) for _ in range(10 ** 4)]',
-                setup=f"m=MyHashMap()",
-                globals={"random": random, "MyHashMap": klass},
-            )
-            number, time_taken = timer.autorange()
-            autorange_stats = {
-                "number": number,
-                "time_taken": time_taken,
-            }
-            print(f"{autorange_stats=}")
-            results = timer.repeat(repeat=repeat, number=number)
-            repeat_stats = {
-                "len": len(results),
-                "min": min(results),
-                "max": max(results),
-                "avg": sum(results) / len(results),
-            }
-            print(f"{repeat_stats=}")
-            perf_time = repeat_stats["min"]
-            print(f"perf_mapping <<< {perf_time=}")
-            return perf_time
+def perf_mapping(klass, repeat=100):
+    print(f"perf_mapping >>> {klass=}, {repeat=}")
+    timer = timeit.Timer(
+        stmt='_ = [m.put(random.randint(0, 10 ** 6), random.randint(0, 10 ** 6)) for _ in range(10 ** 4)]',
+        setup=f"m=MyHashMap()",
+        globals={"random": random, "MyHashMap": klass},
+    )
+    number, time_taken = timer.autorange()
+    autorange_stats = {
+        "number": number,
+        "time_taken": time_taken,
+    }
+    print(f"{autorange_stats=}")
+    results = timer.repeat(repeat=repeat, number=number)
+    repeat_stats = {
+        "len": len(results),
+        "min": min(results),
+        "max": max(results),
+        "avg": sum(results) / len(results),
+    }
+    print(f"{repeat_stats=}")
+    perf_time = repeat_stats["min"]
+    print(f"perf_mapping <<< {perf_time=}")
+    return perf_time
 
-        for klass in [
-            MyHashMap_MutableMapping,
-            MyHashMap_Dict,
-        ]:
-            _ = perf_mapping(klass, repeat=100); print()
+for klass in [
+    MyHashMap_MutableMapping,
+    MyHashMap_Dict,
+]:
+    _ = perf_mapping(klass, repeat=100); print()
 '''
