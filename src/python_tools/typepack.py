@@ -257,3 +257,246 @@ for klass in [
 ]:
     _ = perf_mapping(klass, repeat=100); print()
 '''
+
+"""
+Problem:
+  Design Linked List
+
+Design your implementation of the linked list. You can choose to use
+a singly or doubly linked list. A node in a singly linked list should
+have two attributes: val and next. val is the value of the current node,
+and next is a pointer/reference to the next node. If you want to use the
+doubly linked list, you will need one more attribute prev to indicate
+the previous node in the linked list. Assume all nodes in the linked
+list are 0-indexed.
+
+Implement the MyLinkedList class:
+
+* MyLinkedList() Initializes the MyLinkedList object.
+
+* int get(int index) Get the value of the indexth node in the linked
+list. If the index is invalid, return -1.
+
+* void addAtHead(int val) Add a node of value val before the first
+element of the linked list. After the insertion, the new node will be
+the first node of the linked list.
+
+* void addAtTail(int val) Append a node of value val as the last element
+of the linked list.
+
+* void addAtIndex(int index, int val) Add a node of value val before the
+indexth node in the linked list. If index equals the length of the
+linked list, the node will be appended to the end of the linked list. If
+index is greater than the length, the node will not be inserted.
+
+* void deleteAtIndex(int index) Delete the indexth node in the linked
+list, if the index is valid.
+"""
+
+from abc import ABC, abstractmethod
+from collections.abc import MutableSequence
+from dataclasses import dataclass
+from typing import Generator, Optional
+
+class _LinkedList_MutableSequence(MutableSequence):
+
+    @dataclass
+    class _LinkedListValue():
+        element: int
+
+    @dataclass
+    class _LinkedListNode():
+        value: "_LinkedListValue"
+        next: "_LinkedListNode" = None
+
+    @dataclass
+    class _LinkedList():
+        head: "_LinkedListNode" = None
+
+    def __init__(self) -> None:
+        self._nodes = self.__class__._LinkedList()
+
+    # Required for implementing the Sequence ABC.
+    # See https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes
+
+    def _walk(self) -> Generator["_LinkedListNode", None, None]:
+        node = self._nodes.head
+        while node is not None:
+            yield node
+            node = node.next
+
+    def __iter__(self) -> Generator["_LinkedListValue", None, None]:
+        """This method is called when an iterator is required for a container."""
+        for node in self._walk():
+            yield node.value
+
+    def __getitem__(self, key: int) -> "_LinkedListValue":
+        """Called to implement evaluation of self[key]."""
+        for count, node in enumerate(self._walk()):
+            if count == key:
+                return node.value
+        raise IndexError(key)
+
+    def __len__(self) -> int:
+        """Called to implement the built-in function len()."""
+        count = -1
+        for count, node in enumerate(self._walk()):
+            pass
+        return count + 1
+
+    # Required for implementing the MutableSequence ABC.
+    # See https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes
+
+    def __setitem__(self, key: int, value: "_LinkedListValue") -> None:
+        """Called to implement assignment to self[key]."""
+        for count, node in enumerate(self._walk()):
+            if count == key:
+                node.value = value
+                return
+        raise IndexError(key)
+
+    def __delitem__(self, key: int) -> None:
+        """Called to implement deletion of self[key]."""
+        if key == 0:
+            if self._nodes.head is not None:
+                self._nodes.head = self._nodes.head.next
+            else:
+                self._nodes.head = None
+            return
+        for count, prev in enumerate(self._walk()):
+            if count == (key - 1):
+                if prev.next is not None:
+                    prev.next = prev.next.next
+                else:
+                    prev.next = None
+                return
+        raise IndexError(key)
+
+    def insert(self, key: int, value: "_LinkedListValue") -> None:
+        """Insert an item at a given position."""
+        inserted = self.__class__._LinkedListNode(value)
+        if key == 0:
+            if self._nodes.head is not None:
+                inserted.next = self._nodes.head
+                self._nodes.head = inserted
+            else:
+                self._nodes.head = inserted
+            return
+        for count, prev in enumerate(self._walk()):
+            if count == (key - 1):
+                if prev.next is not None:
+                    inserted.next = prev.next
+                    prev.next = inserted
+                else:
+                    prev.next = inserted
+                return
+        raise IndexError(key)
+
+
+class LinkedListLeetCodeBase(ABC):
+
+    @abstractmethod
+    def get(self, index: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def addAtHead(self, val: int) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def addAtTail(self, val: int) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def addAtIndex(self, index: int, val: int) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def deleteAtIndex(self, index: int) -> None:
+        raise NotImplementedError()
+
+
+class LinkedListLeetCode_MutableSequence(LinkedListLeetCodeBase):
+    """Implement a linked list using a mutable sequence.
+
+    Submission on LeetCode:
+        * Runtime 279 ms (Beats 5.03%)
+        * Memory 18.11 MB (Beats 17.44%)
+    """
+
+    def __init__(self) -> None:
+        self._linkedlist = _LinkedList_MutableSequence()
+
+    def __str__(self) -> str:
+        return str(list(iter(self._linkedlist)))
+
+    # Required for implementing the LinkedListLeetCodeBase ABC.
+
+    def get(self, index: int) -> int:
+        try:
+            return self._linkedlist[index].element
+        except IndexError:
+            return -1
+
+    def addAtHead(self, value: int) -> None:
+        self.addAtIndex(0, value)
+
+    def addAtTail(self, value: int) -> None:
+        self.addAtIndex(len(self._linkedlist), value)
+
+    def addAtIndex(self, index: int, value: int) -> None:
+        try:
+            self._linkedlist.insert(index, _LinkedList_MutableSequence._LinkedListValue(value))
+        except IndexError:
+            return
+
+    def deleteAtIndex(self, index: int) -> None:
+        try:
+            del self._linkedlist[index]
+        except IndexError:
+            return
+
+
+from collections import deque
+
+class LinkedListLeetCode_Deque(LinkedListLeetCodeBase):
+    """Implement a linked list using a deque.
+
+    Submission on LeetCode:
+        * Runtime 11 ms (Beats 100.00%)
+        * Memory 17.92 MB (Beats 32.28%)
+    """
+
+    def __init__(self) -> None:
+        self._linkedlist = deque()
+
+    def __str__(self) -> str:
+        return str(list(iter(self._linkedlist)))
+
+    # Required for implementing LinkedListLeetCodeBase ABC.
+
+    def get(self, index: int) -> int:
+        try:
+            return self._linkedlist[index]
+        except IndexError:
+            return -1
+
+    def addAtHead(self, val: int) -> None:
+        self._linkedlist.appendleft(val)
+
+    def addAtTail(self, val: int) -> None:
+        self._linkedlist.append(val)
+
+    def addAtIndex(self, index: int, val: int) -> None:
+        if index > len(self._linkedlist):
+            return
+        try:
+            self._linkedlist.insert(index, val)
+        except IndexError:
+            return
+
+    def deleteAtIndex(self, index: int) -> None:
+        try:
+            del self._linkedlist[index]
+        except IndexError:
+            return
